@@ -33,7 +33,12 @@ class MainWindow(QMainWindow):
         # StyleSheet 로드
         self.setStyleSheet(qdarktheme.load_stylesheet())
 
+         # 파일 불러오기 부분
         self.loadLayout()
+
+        # 파일 드래그 설정
+        self.setAcceptDrops(True)
+
         # Window 출력
         self.show()
 
@@ -43,11 +48,16 @@ class MainWindow(QMainWindow):
         menu.setNativeMenuBar(False)
 
         # MenuBar 요소 추가
+        openAction = QAction('파일 열기', self)
+        openAction.setShortcut('Ctrl+O')
+        openAction.triggered.connect(self.fileLoad)
+
         exitAction = QAction('종료', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.triggered.connect(qApp.quit)
 
         fileMenu = menu.addMenu('&파일')
+        fileMenu.addAction(openAction)
         fileMenu.addAction(exitAction)
 
     def loadLayout(self):
@@ -78,6 +88,18 @@ class MainWindow(QMainWindow):
         imageFile = file[0]
         # TODO : 불러오기는 됐으니, 이미지 처리
         print(imageFile)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        # TODO : 이미지 파일만 골라내기
+        files = [u.toLocalFile() for u in event.mimeData().urls()]
+        for f in files:
+            print(f)
 
 
 if __name__ == '__main__':
