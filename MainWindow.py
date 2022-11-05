@@ -5,6 +5,8 @@ from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QFontDatabase, QFont
 from PyQt5.QtWidgets import *
 
+from FilterWidget import FilterWidget
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -13,6 +15,8 @@ class MainWindow(QMainWindow):
 
         self.layout = None
         self.widget = None
+        self.img = None
+
         self.initComponents()
 
     def initComponents(self):
@@ -33,8 +37,8 @@ class MainWindow(QMainWindow):
         # StyleSheet 로드
         self.setStyleSheet(qdarktheme.load_stylesheet())
 
-         # 파일 불러오기 부분
-        self.loadLayout()
+        # 파일 불러오기 부분
+        self.imgLoadLayout()
 
         # 파일 드래그 설정
         self.setAcceptDrops(True)
@@ -56,11 +60,11 @@ class MainWindow(QMainWindow):
         exitAction.setShortcut('Ctrl+Q')
         exitAction.triggered.connect(qApp.quit)
 
-        fileMenu = menu.addMenu('&파일')
+        fileMenu = menu.addMenu('파일')
         fileMenu.addAction(openAction)
         fileMenu.addAction(exitAction)
 
-    def loadLayout(self):
+    def imgLoadLayout(self):
         # 불러오기 버튼
         loadButton = QPushButton('클릭하여 불러오기\n\n\n혹은 이미지를 드래그')
         loadButton.clicked.connect(self.fileLoad)
@@ -84,10 +88,7 @@ class MainWindow(QMainWindow):
         # 파일 열기 기능
         file = QFileDialog.getOpenFileName(self, caption='파일 열기', directory=QDir.homePath(),
                                            filter='이미지 파일 (*.jpg *.gif *.png)')
-
-        imageFile = file[0]
-        # TODO : 불러오기는 됐으니, 이미지 처리
-        print(imageFile)
+        self.processFile(file[0])
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -99,13 +100,20 @@ class MainWindow(QMainWindow):
         # TODO : 이미지 파일만 골라내기
         files = [u.toLocalFile() for u in event.mimeData().urls()]
         for f in files:
-            print(f)
+            self.processFile(f)
+
+    def processFile(self, img: str):
+        if len(img) < 1:
+            # 파일이 불러와지지 않은 경우
+            print('User canceled importing images')
+            return False
+
+        self.setCentralWidget(FilterWidget(self, img))
 
 
 if __name__ == '__main__':
     # Application 초기화
     app = QApplication(sys.argv)
-    global imageFile
 
     # 폰트 적용
     font = QFontDatabase()
