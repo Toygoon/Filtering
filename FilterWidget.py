@@ -58,7 +58,7 @@ class FilterWidget(QWidget):
         resultBox = QVBoxLayout()
         resultBox.setAlignment(Qt.AlignCenter)
         result = QLabel(self)
-        resultData = filter.mean(3)
+         resultData = filter.median(3)
         resultPix = QPixmap.fromImage(qimage2ndarray.array2qimage(resultData, normalize=False)).scaledToWidth(SCALE_WIDTH)
         result.setPixmap(resultPix)
         resultBox.addWidget(result)
