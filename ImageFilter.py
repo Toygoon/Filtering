@@ -5,11 +5,17 @@ from skimage.exposure import rescale_intensity
 
 class ImageFilter:
     def __init__(self, img: str):
-        self.img = img
+        self.img = cv2.imread(img)
         self.mask = None
 
+    def getFilterNames(self):
+        return {'mean3': 'Mean Filter 3*3'}
+
+    def getMeanFilterMask(self, size: int):
+        return np.full((size, size), 1 / (size * size))
+
     def mean(self, size: int):
-        self.mask = np.full((size, size), 1 / (size * size))
+        self.mask = self.getMeanFilterMask(size)
         return self.convolution()
 
     def convolution(self):
@@ -47,19 +53,3 @@ class ImageFilter:
 
         # 이미지 출력
         return out
-
-
-if __name__ == "__main__":
-    filter = ImageFilter(cv2.imread('./imgs/noisyimg.png'))
-
-    cv2.imshow('img', filter.mean(3))
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-    # img = cv2.imread('./imgs/noisyimg.png')
-    # mask = np.full((3, 3), 1 / 9)
-    # filter = ImageFilter(img, mask)
-    # cv2.imshow('img', filter.convolution())
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-    # filter = ImageFilter()
