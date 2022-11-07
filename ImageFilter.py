@@ -1,9 +1,7 @@
 import cv2
 import numpy as np
 import qimage2ndarray as qimage2ndarray
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QLabel
-from skimage.exposure import rescale_intensity
+from PyQt5.QtWidgets import QInputDialog
 
 
 class ImageFilter:
@@ -17,7 +15,8 @@ class ImageFilter:
                 'mean5': 'Mean Filter 5*5',
                 'median': 'Median Filter',
                 'lapl4': 'Laplasian 4',
-                'lapl8': 'Laplasian 8'}
+                'lapl8': 'Laplasian 8',
+                'custom': 'Custom'}
 
     def getMeanFilterMask(self, size: int):
         return np.full((size, size), 1 / (size * size))

@@ -1,12 +1,12 @@
-from typing import Any
-
 import cv2
 import numpy
 import numpy as np
 import qimage2ndarray
-from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex, QThread, QRunnable, QThreadPool
+from PIL import ImageQt
+from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex, QRunnable, QThreadPool, QDir
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import *
+from numpy.random.mtrand import randint
 
 from ImageFilter import ImageFilter
 from LoadingScreen import LoadingScreen, LoadingThread
@@ -22,13 +22,45 @@ class FilterWidget(QWidget):
         self.main: QMainWindow = main
         self.img: str = img
 
+        self.imgArray = None
         self.filter: ImageFilter = None
         self.cb: QComboBox = None
         self.weight: QLabel = None
         self.table: QTableView = None
+        self.before: QLabel = None
         self.result: QLabel = None
 
         self.initComponents()
+        self.initMenuBar()
+
+    def initMenuBar(self):
+        self.main.menuBar().clear()
+        menu = self.main.menuBar()
+        menu.setNativeMenuBar(False)
+
+        # MenuBar 요소 추가
+        openAction = QAction('파일 열기', self)
+        openAction.setShortcut('Ctrl+O')
+        openAction.triggered.connect(self.main.fileLoad)
+
+        saveAction = QAction('파일 열기', self)
+        saveAction.setShortcut('Ctrl+S')
+        saveAction.triggered.connect(self.saveImg)
+
+        exitAction = QAction('종료', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.triggered.connect(qApp.quit)
+
+        fileMenu = menu.addMenu('파일')
+        fileMenu.addAction(openAction)
+        fileMenu.addAction(saveAction)
+        fileMenu.addAction(exitAction)
+
+        # Tools
+        noiseAction = QAction('노이즈 생성', self)
+        noiseAction.triggered.connect(self.saltPepper)
+        toolMenu = menu.addMenu('도구')
+        toolMenu.addAction(noiseAction)
 
     def initComponents(self):
         self.main.resize(WIN_HEIGHT, WIN_WIDTH)
@@ -42,9 +74,10 @@ class FilterWidget(QWidget):
         originalBox.setAlignment(Qt.AlignCenter)
         label = QLabel(self)
         pix = QPixmap(
-            qimage2ndarray.array2qimage(cv2.imread(self.img, cv2.IMREAD_GRAYSCALE), normalize=False)).scaledToWidth(
+            qimage2ndarray.array2qimage(filter.img, normalize=False)).scaledToWidth(
             SCALE_WIDTH)
         label.setPixmap(pix)
+        self.before = label
         originalBox.addWidget(label)
         groupOriginal.setLayout(originalBox)
 
@@ -94,9 +127,8 @@ class FilterWidget(QWidget):
         buttonWidget = QWidget()
         buttonBox = QHBoxLayout()
         buttonBox.setAlignment(Qt.AlignRight)
-        backButton = QPushButton("돌아가기")
-        saveButton = QPushButton("저장")
-        buttonBox.addWidget(backButton)
+        saveButton = QPushButton("파일 저장")
+        saveButton.clicked.connect(self.saveImg)
         buttonBox.addWidget(saveButton)
         buttonWidget.setLayout(buttonBox)
 
@@ -108,11 +140,35 @@ class FilterWidget(QWidget):
 
         self.setLayout(layout)
 
+    def saltPepper(self):
+        # TODO : 이미지를 필터에도 적용
+        noise = cv2.imread(self.img, cv2.IMREAD_GRAYSCALE)
+        H, W = noise.shape
+        salt = int(H * W * 0.1)
+        for i in range(salt):
+            row = int(randint(99999, size=1) % H)
+            col = int(randint(9999, size=1) % W)
+            noise[row][col] = 255 if randint(99999, size=1) % 2 == 1 else 0
+
+        self.before.setPixmap(QPixmap(qimage2ndarray.array2qimage(noise).scaledToWidth(SCALE_WIDTH)))
+
     def applyFilter(self):
         pool = QThreadPool.globalInstance()
+
         loading = LoadingThread(loading_screen=LoadingScreen(parent=self, description_text="", dot_animation=True))
         runnable = Runnable(self, loading)
         pool.start(runnable)
+
+    def saveImg(self):
+        img = ImageQt.fromqpixmap(self.result.pixmap())
+        file, _ = QFileDialog.getSaveFileName(parent=self, caption='이미지 파일 저장', directory=QDir.homePath(),
+                                              filter='이미지 파일 (*.png)')
+
+        if len(file) < 1:
+            print('User canceled saving images')
+            return False
+
+        img.save(file)
 
     def comboboxChanged(self):
         cb: QComboBox = self.cb
@@ -120,8 +176,23 @@ class FilterWidget(QWidget):
         table: QTableView = self.table
 
         text = cb.currentText()
+        mask = None
 
-        mask = filter.getFilterTables(text)
+        if text.lower() == 'custom':
+            custom, ok = QInputDialog.getText(self, '크기 입력', '입력 (3*3이면 3 입력) : ')
+            try:
+                custom = int(custom)
+            except ValueError:
+                return False
+
+            if ok is False:
+                return False
+
+            mask = np.ones((custom, custom))
+
+        else:
+            mask = filter.getFilterTables(text)
+
         table.setModel(TableModel(mask, self.weight))
         self.weight.setText("가중치 합 : {:.2f}".format(float(np.sum(mask))))
         table.resizeColumnsToContents()
@@ -179,6 +250,7 @@ class Runnable(QRunnable):
 
     def run(self):
         data = None
+        # self.filter.img = self.widget.before.pixmap()
 
         self.loading.start()
 

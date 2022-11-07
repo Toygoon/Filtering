@@ -16,6 +16,7 @@ class MainWindow(QMainWindow):
         self.layout = None
         self.widget = None
         self.img = None
+        self.menu = None
 
         self.initComponents()
 
@@ -71,18 +72,6 @@ class MainWindow(QMainWindow):
         loadButton.setFlat(True)
 
         self.setCentralWidget(loadButton)
-
-    def mainLayout(self):
-        self.layout = QGridLayout()
-
-        self.widget = QWidget()
-        self.widget.setLayout(self.layout)
-        self.setCentralWidget(self.widget)
-
-        loadButton = QPushButton('불러오기')
-        loadButton.setFlat(True)
-
-        self.layout.addWidget(loadButton, 0, 0)
 
     def fileLoad(self):
         # 파일 열기 기능
