@@ -57,7 +57,7 @@ class FilterWidget(QWidget):
         fileMenu.addAction(exitAction)
 
         # Tools
-        noiseAction = QAction('노이즈 생성', self)
+        noiseAction = QAction('Salt and pepper noise', self)
         noiseAction.triggered.connect(self.saltPepper)
         toolMenu = menu.addMenu('도구')
         toolMenu.addAction(noiseAction)
@@ -150,7 +150,14 @@ class FilterWidget(QWidget):
             col = int(randint(9999, size=1) % W)
             noise[row][col] = 255 if randint(99999, size=1) % 2 == 1 else 0
 
-        self.before.setPixmap(QPixmap(qimage2ndarray.array2qimage(noise).scaledToWidth(SCALE_WIDTH)))
+        pix = QPixmap(qimage2ndarray.array2qimage(noise).scaledToWidth(SCALE_WIDTH))
+        img = ImageQt.fromqpixmap(pix)
+        path = './tmp.png'
+        img.save(path)
+
+        self.img = path
+        self.filter.img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        self.before.setPixmap(pix)
 
     def applyFilter(self):
         pool = QThreadPool.globalInstance()
