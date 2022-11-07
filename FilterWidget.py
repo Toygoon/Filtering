@@ -1,6 +1,7 @@
 from typing import Any
 
 import numpy
+import numpy as np
 import qimage2ndarray
 from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex
 from PyQt5.QtGui import QPixmap
@@ -48,18 +49,20 @@ class FilterWidget(QWidget):
         maskBox.setAlignment(Qt.AlignCenter)
         maskTable = QTableView()
         maskTable.setModel(TableModel(filter.getMeanFilterMask(3)))
+        maskWeight = QLabel(f"가중치 합 : {np.sum(filter.mask)}")
         # maskTable.setFixedSize(maskTable.horizontalHeader().length() + maskTable.verticalHeader().width(),
         #                        maskTable.verticalHeader().length() + maskTable.horizontalHeader().height())
         maskTable.resizeColumnsToContents()
         maskBox.addWidget(maskTable)
+        maskBox.addWidget(maskWeight)
         groupMask.setLayout(maskBox)
 
         groupResult = QGroupBox("적용 결과")
         resultBox = QVBoxLayout()
         resultBox.setAlignment(Qt.AlignCenter)
         result = QLabel(self)
-         resultData = filter.median(3)
-        resultPix = QPixmap.fromImage(qimage2ndarray.array2qimage(resultData, normalize=False)).scaledToWidth(SCALE_WIDTH)
+        resultData = filter.median(3)
+        resultPix = QPixmap.fromImage(resultData).scaledToWidth(SCALE_WIDTH)
         result.setPixmap(resultPix)
         resultBox.addWidget(result)
         groupResult.setLayout(resultBox)
@@ -79,6 +82,7 @@ class FilterWidget(QWidget):
         layout.addWidget(groupResult, 0, 2, 3, 1)
         layout.addWidget(buttonWidget, 3, 2, 1, 1)
 
+        # filter.median(3)
         self.setLayout(layout)
 
 
