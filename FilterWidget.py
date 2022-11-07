@@ -87,9 +87,7 @@ class FilterWidget(QWidget):
         resultBox.setAlignment(Qt.AlignCenter)
         result = QLabel(self)
         self.result = result
-        resultData = filter.mean(3)
-        resultPix = QPixmap.fromImage(resultData).scaledToWidth(SCALE_WIDTH)
-        result.setPixmap(resultPix)
+        result.setPixmap(pix)
         resultBox.addWidget(result)
         groupResult.setLayout(resultBox)
 
@@ -125,7 +123,7 @@ class FilterWidget(QWidget):
 
         mask = filter.getFilterTables(text)
         table.setModel(TableModel(mask, self.weight))
-        self.weight.setText(f"가중치 합 : {np.sum(mask)}")
+        self.weight.setText("가중치 합 : {:.2f}".format(float(np.sum(mask))))
         table.resizeColumnsToContents()
 
         if text == 'Median Filter':
@@ -154,7 +152,7 @@ class TableModel(QAbstractTableModel):
             except ValueError:
                 return False
             self.data[index.row(), index.column()] = value
-            self.weight.setText("가중치 합 : {:.3f}".format(np.sum(self.data)))
+            self.weight.setText("가중치 합 : {:.2f}".format(np.sum(self.data)))
             return True
 
         return False

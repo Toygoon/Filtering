@@ -15,7 +15,9 @@ class ImageFilter:
     def getFilterNames(self):
         return {'mean3': 'Mean Filter 3*3',
                 'mean5': 'Mean Filter 5*5',
-                'median': 'Median Filter'}
+                'median': 'Median Filter',
+                'lapl4': 'Laplasian 4',
+                'lapl8': 'Laplasian 8'}
 
     def getMeanFilterMask(self, size: int):
         return np.full((size, size), 1 / (size * size))
@@ -27,6 +29,12 @@ class ImageFilter:
             return self.getMeanFilterMask(5)
         if name == 'median' or name == 'Median Filter':
             return np.full((3, 3), 0)
+        if name == 'lapl4' or name == 'Laplasian 4':
+            return np.array([[0, 1, 0], [1, -4, 1], [0, 1, 0]])
+        if name == 'lapl8' or name == 'Laplasian 8':
+            mask = np.ones((3, 3))
+            mask[1, 1] = -8
+            return mask
 
     def mean(self, size: int):
         self.mask = self.getMeanFilterMask(size)
