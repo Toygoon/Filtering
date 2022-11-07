@@ -1,8 +1,10 @@
 from typing import Any
 
+import cv2
 import numpy
 import numpy as np
-from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex
+import qimage2ndarray
+from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex, QThread
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import *
 import os
@@ -28,6 +30,7 @@ class FilterWidget(QWidget):
         self.weight: QLabel = None
         self.table: QTableView = None
         self.result: QLabel = None
+        self.thread: QThread = None
 
         self.initComponents()
 
@@ -42,7 +45,7 @@ class FilterWidget(QWidget):
         originalBox = QVBoxLayout()
         originalBox.setAlignment(Qt.AlignCenter)
         label = QLabel(self)
-        pix = QPixmap(self.img).scaledToWidth(SCALE_WIDTH)
+        pix = QPixmap(qimage2ndarray.array2qimage(cv2.imread(self.img, cv2.IMREAD_GRAYSCALE), normalize=False)).scaledToWidth(SCALE_WIDTH)
         label.setPixmap(pix)
         originalBox.addWidget(label)
         groupOriginal.setLayout(originalBox)
@@ -62,17 +65,16 @@ class FilterWidget(QWidget):
         maskBox = QVBoxLayout()
         maskBox.setAlignment(Qt.AlignCenter)
 
-        maskTable = QTableView()
         mask = filter.getMeanFilterMask(3)
-        tableModel = TableModel(mask)
-        tableModel.dataChanged.connect(self.refreshWeight)
-        maskTable.setModel(tableModel)
-
-        self.table = maskTable
-
         maskWeight = QLabel(f"가중치 합 : {np.sum(mask)}")
         self.weight = maskWeight
+
+        maskTable = QTableView()
+        tableModel = TableModel(mask, self.weight)
+        maskTable.setModel(tableModel)
         maskTable.resizeColumnsToContents()
+
+        self.table = maskTable
 
         applyButton = QPushButton('필터 적용')
         applyButton.clicked.connect(self.applyFilter)
@@ -86,6 +88,7 @@ class FilterWidget(QWidget):
         resultBox = QVBoxLayout()
         resultBox.setAlignment(Qt.AlignCenter)
         result = QLabel(self)
+        self.result = result
         resultData = filter.mean(3)
         resultPix = QPixmap.fromImage(resultData).scaledToWidth(SCALE_WIDTH)
         result.setPixmap(resultPix)
@@ -110,17 +113,37 @@ class FilterWidget(QWidget):
         self.setLayout(layout)
 
     def applyFilter(self):
-        cores = mp.cpu_count()
+        filter = self.filter
+        text = self.cb.currentText()
+        mask = self.table.model().data
+        result = self.result
+        data = None
+
+        if text == 'Median Filter':
+            data = filter.median()
+        else:
+            filter.mask = mask
+            data = filter.convolution()
+
+        result.setPixmap(QPixmap.fromImage(data).scaledToWidth(SCALE_WIDTH))
 
     def comboboxChanged(self):
         cb: QComboBox = self.cb
         filter: ImageFilter = self.filter
         table: QTableView = self.table
 
-        table.setModel(TableModel(filter.getFilterTables(cb.currentText()), self.weight))
+        text = cb.currentText()
 
-    def refreshWeight(self, topLeft, bottomRight):
-        print(topLeft, bottomRight)
+        mask = filter.getFilterTables(text)
+        table.setModel(TableModel(mask, self.weight))
+        self.weight.setText(f"가중치 합 : {np.sum(mask)}")
+        table.resizeColumnsToContents()
+
+        if text == 'Median Filter':
+            table.setEnabled(False)
+            self.weight.setText(f"가중치 합 : X")
+        else:
+            table.setEnabled(True)
 
 
 class TableModel(QAbstractTableModel):
@@ -142,6 +165,7 @@ class TableModel(QAbstractTableModel):
             except ValueError:
                 return False
             self.data[index.row(), index.column()] = value
+            self.weight.setText("가중치 합 : {:.3f}".format(np.sum(self.data)))
             return True
 
         return False
@@ -153,7 +177,4 @@ class TableModel(QAbstractTableModel):
         return self.data.shape[1]
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlag:
-        # flag = super().flags(index)
-        # flag |= Qt.ItemFlag.ItemIsEditable
-        # return flag  # type: ignore
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
