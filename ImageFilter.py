@@ -10,10 +10,20 @@ class ImageFilter:
         self.mask = None
 
     def getFilterNames(self):
-        return {'mean3': 'Mean Filter 3*3'}
+        return {'mean3': 'Mean Filter 3*3',
+                'mean5': 'Mean Filter 5*5',
+                'median': 'Median Filter'}
 
     def getMeanFilterMask(self, size: int):
         return np.full((size, size), 1 / (size * size))
+
+    def getFilterTables(self, name: str):
+        if name == 'mean3' or name == 'Mean Filter 3*3':
+            return self.getMeanFilterMask(3)
+        if name == 'mean5' or name == 'Mean Filter 5*5':
+            return self.getMeanFilterMask(5)
+        if name == 'median' or name == 'Median Filter':
+            return np.full((3, 3), -1)
 
     def mean(self, size: int):
         self.mask = self.getMeanFilterMask(size)

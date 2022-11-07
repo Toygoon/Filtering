@@ -97,7 +97,6 @@ class MainWindow(QMainWindow):
             event.ignore()
 
     def dropEvent(self, event):
-        # TODO : 이미지 파일만 골라내기
         files = [u.toLocalFile() for u in event.mimeData().urls()]
         for f in files:
             self.processFile(f)
