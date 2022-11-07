@@ -4,15 +4,12 @@ import cv2
 import numpy
 import numpy as np
 import qimage2ndarray
-from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex, QThread
+from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex, QThread, QRunnable, QThreadPool
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import *
-import os
-import multiprocessing as mp
-from multiprocessing import Pool
-import threading
 
 from ImageFilter import ImageFilter
+from LoadingScreen import LoadingScreen, LoadingThread
 
 SCALE_WIDTH: int = 300
 WIN_HEIGHT: int = 1000
@@ -30,7 +27,6 @@ class FilterWidget(QWidget):
         self.weight: QLabel = None
         self.table: QTableView = None
         self.result: QLabel = None
-        self.thread: QThread = None
 
         self.initComponents()
 
@@ -45,7 +41,9 @@ class FilterWidget(QWidget):
         originalBox = QVBoxLayout()
         originalBox.setAlignment(Qt.AlignCenter)
         label = QLabel(self)
-        pix = QPixmap(qimage2ndarray.array2qimage(cv2.imread(self.img, cv2.IMREAD_GRAYSCALE), normalize=False)).scaledToWidth(SCALE_WIDTH)
+        pix = QPixmap(
+            qimage2ndarray.array2qimage(cv2.imread(self.img, cv2.IMREAD_GRAYSCALE), normalize=False)).scaledToWidth(
+            SCALE_WIDTH)
         label.setPixmap(pix)
         originalBox.addWidget(label)
         groupOriginal.setLayout(originalBox)
@@ -113,19 +111,10 @@ class FilterWidget(QWidget):
         self.setLayout(layout)
 
     def applyFilter(self):
-        filter = self.filter
-        text = self.cb.currentText()
-        mask = self.table.model().data
-        result = self.result
-        data = None
-
-        if text == 'Median Filter':
-            data = filter.median()
-        else:
-            filter.mask = mask
-            data = filter.convolution()
-
-        result.setPixmap(QPixmap.fromImage(data).scaledToWidth(SCALE_WIDTH))
+        pool = QThreadPool.globalInstance()
+        loading = LoadingThread(loading_screen=LoadingScreen(parent=self, description_text="", dot_animation=True))
+        runnable = Runnable(self, loading)
+        pool.start(runnable)
 
     def comboboxChanged(self):
         cb: QComboBox = self.cb
@@ -178,3 +167,29 @@ class TableModel(QAbstractTableModel):
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+
+
+class Runnable(QRunnable):
+    def __init__(self, widget, loading):
+        super().__init__()
+        self.widget: FilterWidget = widget
+        self.filter: ImageFilter = widget.filter
+        self.text: str = widget.cb.currentText()
+        self.mask: numpy.ndarray = widget.table.model().data
+        self.result: QLabel = widget.result
+        self.loading: LoadingThread = loading
+
+    def run(self):
+        data = None
+
+        self.loading.start()
+
+        if self.text == 'Median Filter':
+            data = self.filter.median()
+        else:
+            self.filter.mask = self.mask
+            data = self.filter.convolution()
+
+        self.result.setPixmap(QPixmap.fromImage(data).scaledToWidth(SCALE_WIDTH))
+
+        self.loading.stop()
