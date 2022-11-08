@@ -1,3 +1,5 @@
+import time
+
 import cv2
 import numpy
 import numpy as np
@@ -43,7 +45,7 @@ class FilterWidget(QWidget):
         openAction.setShortcut('Ctrl+O')
         openAction.triggered.connect(self.main.fileLoad)
 
-        saveAction = QAction('파일 열기', self)
+        saveAction = QAction('파일 저장', self)
         saveAction.setShortcut('Ctrl+S')
         saveAction.triggered.connect(self.saveImg)
 
@@ -59,8 +61,11 @@ class FilterWidget(QWidget):
         # Tools
         noiseAction = QAction('Salt and pepper noise', self)
         noiseAction.triggered.connect(self.saltPepper)
+        resetTableAction = QAction('마스크 초기화', self)
+        resetTableAction.triggered.connect(self.comboboxChanged)
         toolMenu = menu.addMenu('도구')
         toolMenu.addAction(noiseAction)
+        toolMenu.addAction(resetTableAction)
 
     def initComponents(self):
         self.main.resize(WIN_HEIGHT, WIN_WIDTH)
@@ -256,7 +261,7 @@ class Runnable(QRunnable):
 
     def run(self):
         data = None
-        # self.filter.img = self.widget.before.pixmap()
+        elapsed = time.time()
 
         self.loading.start()
 
@@ -266,6 +271,7 @@ class Runnable(QRunnable):
             self.filter.mask = self.mask
             data = self.filter.convolution()
 
+        elapsed = time.time() - elapsed
+        print('Elapsed time : {:.3f}'.format(elapsed))
         self.result.setPixmap(QPixmap.fromImage(data).scaledToWidth(SCALE_WIDTH))
-
         self.loading.stop()
