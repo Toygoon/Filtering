@@ -2,7 +2,7 @@ import sys
 
 import qdarktheme
 from PyQt5.QtCore import QDir
-from PyQt5.QtGui import QFontDatabase, QFont
+from PyQt5.QtGui import QFontDatabase, QFont, QIcon
 from PyQt5.QtWidgets import *
 
 from FilterWidget import FilterWidget
@@ -26,6 +26,8 @@ class MainWindow(QMainWindow):
 
         # Window 크기 설정
         self.resize(500, 500)
+
+        self.setWindowIcon(QIcon('./imgs/icon.png'))
 
         # Window가 중간에 위치하도록 설정
         frame = self.frameGeometry()

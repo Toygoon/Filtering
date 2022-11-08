@@ -141,7 +141,6 @@ class FilterWidget(QWidget):
         self.setLayout(layout)
 
     def saltPepper(self):
-        # TODO : 이미지를 필터에도 적용
         noise = cv2.imread(self.img, cv2.IMREAD_GRAYSCALE)
         H, W = noise.shape
         salt = int(H * W * 0.1)
